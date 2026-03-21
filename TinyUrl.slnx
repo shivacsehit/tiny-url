@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="TinyUrl.API/TinyUrl.API.csproj" />
+  <Project Path="TinyUrl.Blazor/TinyUrl.Blazor.csproj" />
+  <Project Path="TinyUrl.Web/tinyurl.web.client/tinyurl.web.client.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+  <Project Path="TinyUrl.Web/TinyUrl.Web.Server/TinyUrl.Web.Server.csproj" />
+</Solution>

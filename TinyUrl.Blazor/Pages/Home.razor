@@ -1,0 +1,136 @@
+﻿@page "/"
+@inject TinyUrl.Blazor.Services.UrlService UrlService
+@inject IJSRuntime JS
+
+<div class="container">
+    <h1>🔗 Tiny URL</h1>
+
+    <!-- Generate Form -->
+    <div class="card">
+        <div class="form-row">
+            <input @bind="longUrl"
+                   placeholder="Enter URL to shorten..."
+                   class="url-input" />
+            <label class="checkbox-label">
+                <input type="checkbox" @bind="isPrivate" /> Private
+            </label>
+            <button @onclick="Generate" class="btn-primary">Generate</button>
+        </div>
+
+        @if (!string.IsNullOrEmpty(generatedUrl))
+        {
+            <div class="result-box">
+                <a href="@generatedUrl" target="_blank">@generatedUrl</a>
+                <button @onclick="() => Copy(generatedUrl)" class="btn-copy">
+                    @(copied ? "✅ Copied!" : "📋 Copy")
+                </button>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(error))
+        {
+            <p class="error">@error</p>
+        }
+    </div>
+
+    <!-- Public URLs -->
+    <div class="card">
+        <h2>Public URLs</h2>
+        <input value="@search"
+               @oninput="OnSearch"
+               placeholder="Search..."
+               class="search-input" />
+
+        @if (urls.Count == 0)
+        {
+            <div class="empty">No URLs found.</div>
+        }
+
+        @foreach (var u in urls)
+        {
+            <div class="url-card">
+                <div class="url-info">
+                    <span class="short-link">/@u.ShortCode</span>
+                    <span class="original">@u.OriginalUrl</span>
+                </div>
+                <div class="url-actions">
+                    <span class="clicks">@u.Clicks clicks</span>
+                    <button @onclick="() => Copy(u.ShortCode)" class="btn-copy">
+                        📋 Copy
+                    </button>
+                    <button @onclick="() => Delete(u.ShortCode)" class="btn-danger">
+                        🗑 Delete
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string longUrl = "";
+    private bool isPrivate = false;
+    private List<TinyUrl.Blazor.Models.TinyUrlEntry> urls = new();
+    private string search = "";
+    private string generatedUrl = "";
+    private bool copied = false;
+    private string error = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        try
+        {
+            urls = await UrlService.GetPublicAsync(search);
+        }
+        catch
+        {
+            error = "Failed to load URLs";
+        }
+    }
+
+    private async Task Generate()
+    {
+        if (string.IsNullOrEmpty(longUrl)) return;
+        try
+        {
+            var result = await UrlService.AddAsync(longUrl, isPrivate);
+            if (result != null)
+            {
+                generatedUrl = result.ShortUrl;
+                longUrl = "";
+                error = "";
+                await Load();
+            }
+        }
+        catch
+        {
+            error = "Failed to generate URL";
+        }
+    }
+
+    private async Task Delete(string code)
+    {
+        await UrlService.DeleteAsync(code);
+        await Load();
+    }
+
+    private async Task Copy(string text)
+    {
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", text);
+        copied = true;
+        await Task.Delay(2000);
+        copied = false;
+        StateHasChanged();
+    }
+
+    private async Task OnSearch(ChangeEventArgs e)
+    {
+        search = e.Value?.ToString() ?? "";
+        await Load();
+    }
+}

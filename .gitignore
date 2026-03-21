@@ -1,0 +1,20 @@
+# .NET
+**/bin/
+**/obj/
+**/logs/
+*.user
+.vs/
+
+# Angular
+**/node_modules/
+**/dist/
+
+# Terraform
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.backup
+**/*.tfvars
+
+# Secrets
+**/appsettings.Development.json
+**/local.settings.json
