@@ -37,7 +37,17 @@ Frontend (Angular / Blazor) → Backend (ASP.NET Core Minimal API) → Azure SQL
 ---
 
 ## 🚀 Run Locally
+## ⚙️ Connection String
 
+For SQL Express users:
+```json
+"Default": "Server=localhost\\SQLEXPRESS;Database=TinyUrlDb;Trusted_Connection=True;TrustServerCertificate=True;"
+```
+
+For default SQL Server:
+```json
+"Default": "Server=.;Database=TinyUrlDb;Trusted_Connection=True;TrustServerCertificate=True;"
+```
 ### 1. Clone the repo
 ```bash
 git clone https://github.com/shivacsehit/tiny-url.git
