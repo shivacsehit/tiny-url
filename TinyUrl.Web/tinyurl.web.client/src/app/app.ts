@@ -19,20 +19,33 @@ export class AppComponent implements OnInit {
   generatedUrl = '';
   copied = false;
   error = '';
+  loading = false;
 
   constructor(private svc: UrlService) { }
 
   ngOnInit() { this.load(); }
 
   load() {
+    this.loading = true;
     this.svc.getPublic(this.search).subscribe({
-      next: data => this.urls = data,
-      error: () => this.error = 'Failed to load URLs'
+      next: data => {
+        this.urls = data;
+        this.error = '';      // ← clear error on success
+        this.loading = false;
+      },
+      error: () => {
+        this.loading = false;
+        // ← only show error if urls is empty
+        if (this.urls.length === 0) {
+          this.error = 'Failed to load URLs';
+        }
+      }
     });
   }
 
   generate() {
     if (!this.longUrl) return;
+    this.error = '';
     this.svc.add(this.longUrl, this.isPrivate).subscribe({
       next: res => {
         this.generatedUrl = res.shortUrl;
@@ -44,7 +57,10 @@ export class AppComponent implements OnInit {
   }
 
   delete(code: string) {
-    this.svc.delete(code).subscribe(() => this.load());
+    this.svc.delete(code).subscribe({
+      next: () => this.load(),
+      error: () => this.error = 'Failed to delete URL'
+    });
   }
 
   copy(url: string) {
