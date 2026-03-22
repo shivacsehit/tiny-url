@@ -14,7 +14,6 @@ namespace TinyUrl.API.Controllers
         {
             _db = db;
         }
-
         // POST /api/add
         [HttpPost("api/add")]
         public async Task<IActionResult> Add([FromBody] TinyUrlAddDto dto)
@@ -22,7 +21,6 @@ namespace TinyUrl.API.Controllers
             if (string.IsNullOrEmpty(dto.Url))
                 return BadRequest("URL is required");
 
-            // Auto-add https:// if missing
             var url = dto.Url.Trim();
             if (!url.StartsWith("http://") && !url.StartsWith("https://"))
                 url = "https://" + url;
@@ -31,18 +29,26 @@ namespace TinyUrl.API.Controllers
             do { code = ShortCodeGenerator.Generate(); }
             while (await _db.TinyUrls.AnyAsync(x => x.ShortCode == code));
 
-            var entry = new API.Models.TinyUrl
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            var shortUrl = $"{baseUrl}/{code}";
+
+            var entry = new TinyUrl.API.Models.TinyUrl
             {
                 OriginalUrl = url,
                 ShortCode = code,
+                ShortUrl = shortUrl,
                 IsPrivate = dto.IsPrivate
             };
 
             _db.TinyUrls.Add(entry);
             await _db.SaveChangesAsync();
 
-            var baseUrl = $"{Request.Scheme}://{Request.Host}";
-            return Ok(new { shortUrl = $"{baseUrl}/{code}", code });
+            return Ok(new
+            {
+                shortUrl,
+                code,
+                id = entry.Id
+            });
         }
 
         // GET /api/public
@@ -50,6 +56,7 @@ namespace TinyUrl.API.Controllers
         public async Task<IActionResult> GetPublic([FromQuery] string? search)
         {
             var query = _db.TinyUrls.Where(x => !x.IsPrivate);
+
             if (!string.IsNullOrEmpty(search))
                 query = query.Where(x =>
                     x.ShortCode.Contains(search) ||
@@ -115,7 +122,6 @@ namespace TinyUrl.API.Controllers
                 .FirstOrDefaultAsync(x => x.ShortCode == code);
             if (entry is null) return NotFound();
 
-            // Auto-add https:// if missing
             var url = dto.Url.Trim();
             if (!url.StartsWith("http://") && !url.StartsWith("https://"))
                 url = "https://" + url;

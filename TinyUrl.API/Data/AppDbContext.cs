@@ -1,6 +1,8 @@
-﻿namespace TinyUrl.API.Data
+﻿using Microsoft.EntityFrameworkCore;
+
+
+namespace TinyUrl.API.Data
 {
-    using Microsoft.EntityFrameworkCore;
     using TinyUrl.API.Models;
     public class AppDbContext : DbContext
     {
@@ -24,6 +26,10 @@
                 .Property(x => x.ShortCode)
                 .IsRequired()
                 .HasMaxLength(6);
+
+            modelBuilder.Entity<TinyUrl>()
+                .Property(x => x.ShortUrl)
+                .HasMaxLength(500);
         }
     }
 }

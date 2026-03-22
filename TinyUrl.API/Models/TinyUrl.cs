@@ -8,5 +8,6 @@
         public bool IsPrivate { get; set; }
         public int Clicks { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public string ShortUrl { get; set; } = "";
     }
 }

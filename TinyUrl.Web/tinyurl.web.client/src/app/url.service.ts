@@ -5,6 +5,7 @@ import { environment } from '../environments/environment';
 export interface TinyUrl {
   id: number;
   shortCode: string;
+  shortUrl: string;     
   originalUrl: string;
   isPrivate: boolean;
   clicks: number;
