@@ -10,4 +10,5 @@
     <Deploy />
   </Project>
   <Project Path="TinyUrl.Web/TinyUrl.Web.Server/TinyUrl.Web.Server.csproj" />
+  <Project Path="TinyUrl.WPF/TinyUrl.WPF.csproj" />
 </Solution>
