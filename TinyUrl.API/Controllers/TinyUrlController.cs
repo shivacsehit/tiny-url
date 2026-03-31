@@ -1,134 +1,95 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using TinyUrl.API.Data;
-using TinyUrl.API.Helpers;
+using TinyUrl.API.Interfaces;
+using TinyUrl.API.Models;
 
 namespace TinyUrl.API.Controllers
 {
     [ApiController]
     public class TinyUrlController : ControllerBase
     {
-        private readonly AppDbContext _db;
+        private readonly IUrlService _svc;
 
-        public TinyUrlController(AppDbContext db)
+        public TinyUrlController(IUrlService svc)
         {
-            _db = db;
+            _svc = svc;
         }
-        // POST /api/add
-        [HttpPost("api/add")]
+
+        private string GetBaseUrl() =>
+            $"{Request.Scheme}://{Request.Host}";
+
+        // POST /api/urls
+        [HttpPost("api/urls")]
         public async Task<IActionResult> Add([FromBody] TinyUrlAddDto dto)
         {
             if (string.IsNullOrEmpty(dto.Url))
                 return BadRequest("URL is required");
 
-            var url = dto.Url.Trim();
-            if (!url.StartsWith("http://") && !url.StartsWith("https://"))
-                url = "https://" + url;
+            var entry = await _svc.CreateShortUrlAsync(
+                dto.Url, dto.IsPrivate, GetBaseUrl());
 
-            string code;
-            do { code = ShortCodeGenerator.Generate(); }
-            while (await _db.TinyUrls.AnyAsync(x => x.ShortCode == code));
-
-            var baseUrl = $"{Request.Scheme}://{Request.Host}";
-            var shortUrl = $"{baseUrl}/{code}";
-
-            var entry = new TinyUrl.API.Models.TinyUrl
-            {
-                OriginalUrl = url,
-                ShortCode = code,
-                ShortUrl = shortUrl,
-                IsPrivate = dto.IsPrivate
-            };
-
-            _db.TinyUrls.Add(entry);
-            await _db.SaveChangesAsync();
-
-            return Ok(new
-            {
-                shortUrl,
-                code,
-                id = entry.Id
-            });
+            return CreatedAtAction(nameof(GetByCode),
+                new { code = entry.ShortCode },
+                new { entry.ShortUrl, entry.ShortCode, entry.Id });
         }
 
-        // GET /api/public
-        [HttpGet("api/public")]
+        // GET /api/urls
+        [HttpGet("api/urls")]
         public async Task<IActionResult> GetPublic([FromQuery] string? search)
         {
-            var query = _db.TinyUrls.Where(x => !x.IsPrivate);
-
-            if (!string.IsNullOrEmpty(search))
-                query = query.Where(x =>
-                    x.ShortCode.Contains(search) ||
-                    x.OriginalUrl.Contains(search));
-
-            var result = await query
-                .OrderByDescending(x => x.CreatedAt)
-                .ToListAsync();
-
+            var result = await _svc.GetPublicUrlsAsync(search);
             return Ok(result);
         }
 
-        // GET /{code} - redirect to original URL
+        // GET /api/urls/{code}
+        [HttpGet("api/urls/{code}")]
+        public async Task<IActionResult> GetByCode(string code)
+        {
+            var entry = await _svc.GetByCodeAsync(code);
+            if (entry is null) return NotFound();
+            return Ok(entry);
+        }
+
+        // GET /{code} - redirect
         [HttpGet("{code}")]
         public async Task<IActionResult> RedirectToUrl(string code)
         {
-            // Skip system routes
             if (code is "swagger" or "api" or "favicon.ico"
                 or "health" or "index.html")
                 return NotFound();
 
-            var entry = await _db.TinyUrls
-                .FirstOrDefaultAsync(x => x.ShortCode == code);
-
-            if (entry is null)
+            var originalUrl = await _svc.GetOriginalUrlAsync(code);
+            if (originalUrl is null)
                 return NotFound($"Short code '{code}' not found");
 
-            entry.Clicks++;
-            await _db.SaveChangesAsync();
-
-            return Redirect(entry.OriginalUrl);
+            return Redirect(originalUrl);
         }
 
-        // DELETE /api/delete/{code}
-        [HttpDelete("api/delete/{code}")]
+        // DELETE /api/urls/{code}
+        [HttpDelete("api/urls/{code}")]
         public async Task<IActionResult> Delete(string code)
         {
-            var entry = await _db.TinyUrls
-                .FirstOrDefaultAsync(x => x.ShortCode == code);
-            if (entry is null) return NotFound();
-
-            _db.TinyUrls.Remove(entry);
-            await _db.SaveChangesAsync();
-            return Ok();
+            var deleted = await _svc.DeleteUrlAsync(code);
+            if (!deleted) return NotFound();
+            return NoContent();
         }
 
-        // DELETE /api/delete-all
-        [HttpDelete("api/delete-all")]
+        // DELETE /api/urls
+        [HttpDelete("api/urls")]
         public async Task<IActionResult> DeleteAll()
         {
-            _db.TinyUrls.RemoveRange(_db.TinyUrls);
-            await _db.SaveChangesAsync();
-            return Ok();
+            await _svc.DeleteAllUrlsAsync();
+            return NoContent();
         }
 
-        // PUT /api/update/{code}
-        [HttpPut("api/update/{code}")]
+        // PUT /api/urls/{code}
+        [HttpPut("api/urls/{code}")]
         public async Task<IActionResult> Update(
             string code,
             [FromBody] TinyUrlAddDto dto)
         {
-            var entry = await _db.TinyUrls
-                .FirstOrDefaultAsync(x => x.ShortCode == code);
+            var entry = await _svc.UpdateUrlAsync(
+                code, dto.Url, dto.IsPrivate);
             if (entry is null) return NotFound();
-
-            var url = dto.Url.Trim();
-            if (!url.StartsWith("http://") && !url.StartsWith("https://"))
-                url = "https://" + url;
-
-            entry.OriginalUrl = url;
-            entry.IsPrivate = dto.IsPrivate;
-            await _db.SaveChangesAsync();
             return Ok(entry);
         }
     }

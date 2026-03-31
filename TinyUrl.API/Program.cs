@@ -3,6 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 using Serilog;
 using TinyUrl.API.Data;
+using TinyUrl.API.Helpers;
+using TinyUrl.API.Interfaces;
+using TinyUrl.API.Repositories;
+using TinyUrl.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +21,11 @@ builder.Host.UseSerilog();
 builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseSqlServer(builder.Configuration
         .GetConnectionString("Default")));
+
+// Register abstractions not implementations
+builder.Services.AddScoped<IUrlRepository, UrlRepository>();
+builder.Services.AddScoped<IUrlService, UrlService>();
+builder.Services.AddScoped<IShortCodeGenerator, ShortCodeGenerator>();
 
 // Controllers
 builder.Services.AddControllers();

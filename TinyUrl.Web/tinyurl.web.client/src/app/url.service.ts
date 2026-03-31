@@ -5,7 +5,7 @@ import { environment } from '../environments/environment';
 export interface TinyUrl {
   id: number;
   shortCode: string;
-  shortUrl: string;     
+  shortUrl: string;
   originalUrl: string;
   isPrivate: boolean;
   clicks: number;
@@ -19,15 +19,17 @@ export class UrlService {
 
   add(url: string, isPrivate: boolean) {
     return this.http.post<{ shortUrl: string; code: string }>(
-      `${this.base}/api/add`, { url, isPrivate });
+      `${this.base}/api/urls`,      
+      { url, isPrivate });
   }
 
   getPublic(search = '') {
     return this.http.get<TinyUrl[]>(
-      `${this.base}/api/public?search=${search}`);
+      `${this.base}/api/urls?search=${search}`);  
   }
 
   delete(code: string) {
-    return this.http.delete(`${this.base}/api/delete/${code}`);
+    return this.http.delete(
+      `${this.base}/api/urls/${code}`);  
   }
 }

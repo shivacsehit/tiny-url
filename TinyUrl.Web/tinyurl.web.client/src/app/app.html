@@ -3,13 +3,25 @@
 
   <div class="card">
     <div class="form-row">
-      <input [(ngModel)]="longUrl"
-             placeholder="Enter URL to shorten..."
-             class="url-input" />
+      <div class="input-wrapper">
+        <input [(ngModel)]="longUrl"
+               (ngModelChange)="onUrlInput()"
+               placeholder="Enter URL to shorten..."
+               class="url-input"
+               [class.input-error]="urlError" />
+        <!-- Validation message -->
+        <span *ngIf="urlError" class="validation-error">
+          ⚠️ {{ urlError }}
+        </span>
+      </div>
       <label class="checkbox-label">
         <input type="checkbox" [(ngModel)]="isPrivate" /> Private
       </label>
-      <button (click)="generate()" class="btn-primary">Generate</button>
+      <button (click)="generate()"
+              class="btn-primary"
+              [disabled]="!!urlError">
+        Generate
+      </button>
     </div>
 
     <div *ngIf="generatedUrl" class="result-box">
@@ -18,7 +30,6 @@
         {{ copied ? '✅ Copied!' : '📋 Copy' }}
       </button>
     </div>
-
     <p *ngIf="error" class="error">{{ error }}</p>
   </div>
 
@@ -30,20 +41,25 @@
            class="search-input" />
 
     <div *ngIf="loading" class="empty">Loading...</div>
-
     <div *ngIf="!loading && urls.length === 0" class="empty">
       No URLs found.
     </div>
 
     <div class="url-card" *ngFor="let u of urls">
       <div class="url-info">
-        <span class="short-link">/{{ u.shortCode }}</span>
+        <a [href]="u.shortUrl" target="_blank" class="short-link">
+          /{{ u.shortCode }}
+        </a>
         <span class="original">{{ u.originalUrl }}</span>
       </div>
       <div class="url-actions">
         <span class="clicks">{{ u.clicks }} clicks</span>
-        <button (click)="copy(u.shortUrl)" class="btn-copy">📋 Copy</button>
-        <button (click)="delete(u.shortCode)" class="btn-danger">🗑 Delete</button>
+        <button (click)="copy(u.shortUrl)" class="btn-copy">
+          📋 Copy
+        </button>
+        <button (click)="delete(u.shortCode)" class="btn-danger">
+          🗑 Delete
+        </button>
       </div>
     </div>
   </div>

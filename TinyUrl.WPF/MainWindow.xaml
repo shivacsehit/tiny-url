@@ -80,24 +80,51 @@
             <StackPanel>
                 <!-- Input Row -->
                 <StackPanel Orientation="Horizontal"
-                            Margin="0,0,0,12">
-                    <TextBox Width="500"
-                             Height="40"
-                             Padding="12,8"
-                             FontSize="13"
-                             BorderBrush="#DDD"
-                             BorderThickness="1"
-                             VerticalContentAlignment="Center"
-                             Text="{Binding LongUrl, UpdateSourceTrigger=PropertyChanged}"/>
+            Margin="0,0,0,12">
+                    <StackPanel Width="500">
+                        <TextBox Height="40"
+                 Padding="12,8"
+                 FontSize="13"
+                 BorderThickness="1"
+                 VerticalContentAlignment="Center"
+                 Text="{Binding LongUrl, 
+                     UpdateSourceTrigger=PropertyChanged}">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox">
+                                    <Setter Property="BorderBrush" Value="#DDD"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasUrlError}" 
+                                     Value="True">
+                                            <Setter Property="BorderBrush" 
+                                    Value="#E53E3E"/>
+                                            <Setter Property="Background" 
+                                    Value="#FFF5F5"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+
+                        <!-- Validation Error -->
+                        <TextBlock Text="{Binding UrlError}"
+                   Foreground="#E53E3E"
+                   FontSize="11"
+                   Margin="0,4,0,0"
+                   Visibility="{Binding HasUrlError,
+                       Converter={StaticResource BoolToVis}}"/>
+                    </StackPanel>
+
                     <CheckBox Content="Private"
-                              IsChecked="{Binding IsPrivate}"
-                              VerticalAlignment="Center"
-                              Margin="16,0"
-                              FontSize="13"/>
+              IsChecked="{Binding IsPrivate}"
+              VerticalAlignment="Top"
+              Margin="16,10,16,0"
+              FontSize="13"/>
+
                     <Button Content="Generate"
-                            Style="{StaticResource PrimaryButton}"
-                            Command="{Binding GenerateCommand}"
-                            Height="40"/>
+            Style="{StaticResource PrimaryButton}"
+            Command="{Binding GenerateCommand}"
+            Height="40"
+            VerticalAlignment="Top"/>
                 </StackPanel>
 
                 <!-- Generated URL Result -->

@@ -8,13 +8,24 @@
     <!-- Generate Form -->
     <div class="card">
         <div class="form-row">
-            <input @bind="longUrl"
-                   placeholder="Enter URL to shorten..."
-                   class="url-input" />
+            <div class="input-wrapper">
+                <input value="@longUrl"
+                       @oninput="OnUrlInput"
+                       placeholder="Enter URL to shorten..."
+                       class="url-input @(string.IsNullOrEmpty(urlError) ? "" : "input-error")" />
+                @if (!string.IsNullOrEmpty(urlError))
+                {
+                    <span class="validation-error">⚠️ @urlError</span>
+                }
+            </div>
             <label class="checkbox-label">
                 <input type="checkbox" @bind="isPrivate" /> Private
             </label>
-            <button @onclick="Generate" class="btn-primary">Generate</button>
+            <button @onclick="Generate"
+                    class="btn-primary"
+                    disabled="@(!string.IsNullOrEmpty(urlError))">
+                Generate
+            </button>
         </div>
 
         @if (!string.IsNullOrEmpty(generatedUrl))
@@ -75,6 +86,7 @@
     private string generatedUrl = "";
     private bool copied = false;
     private string error = "";
+    private string urlError = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -93,9 +105,48 @@
         }
     }
 
+    private string ValidateUrl(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+            return "";
+
+        var testUrl = url.Trim();
+
+        if (!testUrl.StartsWith("http://") &&
+            !testUrl.StartsWith("https://"))
+            testUrl = "https://" + testUrl;
+
+        if (!Uri.TryCreate(testUrl, UriKind.Absolute, out var uri))
+            return "Invalid URL — please enter a valid web address";
+
+        if (uri.Scheme != "http" && uri.Scheme != "https")
+            return "Invalid URL — must start with http or https";
+
+        if (string.IsNullOrEmpty(uri.Host) || uri.Host.Length < 3)
+            return "Invalid URL — missing domain";
+
+        if (!uri.Host.Contains('.'))
+            return "Invalid URL — must include domain (e.g. google.com)";
+
+        if (url.Contains(' '))
+            return "URL cannot contain spaces";
+
+        return "";
+    }
+
+    private void OnUrlInput(ChangeEventArgs e)
+    {
+        longUrl = e.Value?.ToString() ?? "";
+        urlError = ValidateUrl(longUrl);
+    }
+
     private async Task Generate()
     {
+        urlError = ValidateUrl(longUrl);
+        if (!string.IsNullOrEmpty(urlError)) return;
+
         if (string.IsNullOrEmpty(longUrl)) return;
+
         try
         {
             var result = await UrlService.AddAsync(longUrl, isPrivate);

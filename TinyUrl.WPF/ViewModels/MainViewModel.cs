@@ -15,8 +15,25 @@ namespace TinyUrl.WPF.ViewModels
         public string LongUrl
         {
             get => _longUrl;
-            set => SetProperty(ref _longUrl, value);
+            set
+            {
+                SetProperty(ref _longUrl, value);
+                UrlError = ValidateUrl(value);
+            }
         }
+
+        private string _urlError = "";
+        public string UrlError
+        {
+            get => _urlError;
+            set
+            {
+                SetProperty(ref _urlError, value);
+                OnPropertyChanged(nameof(HasUrlError));
+            }
+        }
+
+        public bool HasUrlError => !string.IsNullOrEmpty(UrlError);
 
         private bool _isPrivate;
         public bool IsPrivate
@@ -59,6 +76,7 @@ namespace TinyUrl.WPF.ViewModels
                 OnPropertyChanged(nameof(HasError));
             }
         }
+
 
         public bool HasError => !string.IsNullOrEmpty(Error);
 
@@ -121,6 +139,35 @@ namespace TinyUrl.WPF.ViewModels
 
         // ─── Methods ──────────────────────────────────────────
 
+        private string ValidateUrl(string url)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+                return ""; 
+
+            var testUrl = url.Trim();
+
+            if (!testUrl.StartsWith("http://") &&
+                !testUrl.StartsWith("https://"))
+                testUrl = "https://" + testUrl;
+
+            if (!Uri.TryCreate(testUrl, UriKind.Absolute, out var uri))
+                return "Invalid URL — please enter a valid web address";
+
+            if (uri.Scheme != "http" && uri.Scheme != "https")
+                return "Invalid URL — must start with http or https";
+
+            if (string.IsNullOrEmpty(uri.Host) || uri.Host.Length < 3)
+                return "Invalid URL — missing domain";
+
+            if (!uri.Host.Contains('.'))
+                return "Invalid URL — must include domain (e.g. google.com)";
+
+            if (url.Contains(' '))
+                return "URL cannot contain spaces";
+
+            return "";
+        }
+
         private async Task LoadUrlsAsync()
         {
             try
@@ -142,6 +189,14 @@ namespace TinyUrl.WPF.ViewModels
 
         private async Task GenerateAsync()
         {
+            UrlError = ValidateUrl(LongUrl);
+            if (string.IsNullOrEmpty(LongUrl))
+            {
+                UrlError = "URL is required";
+                return;
+            }
+            if (!string.IsNullOrEmpty(UrlError)) return;
+
             try
             {
                 Error = "";
@@ -150,6 +205,7 @@ namespace TinyUrl.WPF.ViewModels
                 {
                     GeneratedUrl = shortUrl;
                     LongUrl = "";
+                    UrlError = "";
                     await LoadUrlsAsync();
                 }
             }
