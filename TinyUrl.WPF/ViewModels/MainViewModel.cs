@@ -116,9 +116,10 @@ namespace TinyUrl.WPF.ViewModels
 
         // ─── Constructor ──────────────────────────────────────
 
-        public MainViewModel()
+        public MainViewModel(UrlService svc)
         {
-            _svc = new UrlService();
+            _svc = svc;
+            //_svc = new UrlService();
 
             GenerateCommand = new AsyncRelayCommand(
                 _ => GenerateAsync(),

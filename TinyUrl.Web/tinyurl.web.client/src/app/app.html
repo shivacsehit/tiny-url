@@ -1,53 +1,68 @@
 <div class="container">
   <h1>🔗 Tiny URL</h1>
 
+  <!-- Generate Card -->
   <div class="card">
     <div class="form-row">
+
       <div class="input-wrapper">
         <input [(ngModel)]="longUrl"
                (ngModelChange)="onUrlInput()"
                placeholder="Enter URL to shorten..."
                class="url-input"
                [class.input-error]="urlError" />
-        <!-- Validation message -->
         <span *ngIf="urlError" class="validation-error">
           ⚠️ {{ urlError }}
         </span>
       </div>
+
       <label class="checkbox-label">
-        <input type="checkbox" [(ngModel)]="isPrivate" /> Private
+        <input type="checkbox" [(ngModel)]="isPrivate" />
+        Private
       </label>
+
       <button (click)="generate()"
               class="btn-primary"
               [disabled]="!!urlError">
         Generate
       </button>
+
     </div>
 
     <div *ngIf="generatedUrl" class="result-box">
-      <a [href]="generatedUrl" target="_blank">{{ generatedUrl }}</a>
+      <a [href]="generatedUrl" target="_blank">
+        {{ generatedUrl }}
+      </a>
       <button (click)="copy(generatedUrl)" class="btn-copy">
         {{ copied ? '✅ Copied!' : '📋 Copy' }}
       </button>
     </div>
+
     <p *ngIf="error" class="error">{{ error }}</p>
   </div>
 
+  <!-- Public URLs Card -->
   <div class="card">
     <h2>Public URLs</h2>
+
     <input [(ngModel)]="search"
            (ngModelChange)="load()"
            placeholder="Search..."
            class="search-input" />
 
-    <div *ngIf="loading" class="empty">Loading...</div>
+    <div *ngIf="loading" class="empty">
+      Loading...
+    </div>
+
     <div *ngIf="!loading && urls.length === 0" class="empty">
       No URLs found.
     </div>
 
     <div class="url-card" *ngFor="let u of urls">
       <div class="url-info">
-        <a [href]="u.shortUrl" target="_blank" class="short-link">
+        <a [href]="u.shortUrl"
+           target="_blank"
+           class="short-link">
           /{{ u.shortCode }}
         </a>
         <span class="original">{{ u.originalUrl }}</span>

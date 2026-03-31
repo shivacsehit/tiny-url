@@ -1,17 +1,21 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClientModule } from '@angular/common/http';
 import { UrlService, TinyUrl } from './url.service';
+import { AuthService } from './auth.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule],
+  imports: [
+    CommonModule,
+    FormsModule
+  ],
   templateUrl: './app.html',
   styleUrls: ['./app.css']
 })
-export class AppComponent implements OnInit {
+export class AppComponent {
+
   longUrl = '';
   isPrivate = false;
   urls: TinyUrl[] = [];
@@ -22,32 +26,27 @@ export class AppComponent implements OnInit {
   loading = false;
   urlError = '';
 
-  constructor(private svc: UrlService) { }
-
-  ngOnInit() { this.load(); }
+  constructor(
+    private svc: UrlService,
+    private auth: AuthService
+  ) {
+    this.auth.autoLogin().then(() => {
+      this.load();
+    });
+  }
 
   validateUrl(url: string): string {
-    if (!url || url.trim() === '')
-      return 'URL is required';
-
+    if (!url || url.trim() === '') return '';
     let testUrl = url.trim();
-
     if (!testUrl.startsWith('http://') &&
       !testUrl.startsWith('https://'))
       testUrl = 'https://' + testUrl;
-
     try {
       const parsed = new URL(testUrl);
-
-      if (!parsed.hostname || parsed.hostname.length < 3)
-        return 'Invalid URL — missing domain';
-
       if (!parsed.hostname.includes('.'))
-        return 'Invalid URL — must include domain (e.g. google.com)';
-
+        return 'Invalid URL — must include domain';
       if (url.includes(' '))
         return 'URL cannot contain spaces';
-
       return '';
     } catch {
       return 'Invalid URL — please enter a valid web address';
@@ -75,7 +74,10 @@ export class AppComponent implements OnInit {
   }
 
   generate() {
-    // Validate before submitting
+    if (!this.longUrl || this.longUrl.trim() === '') {
+      this.urlError = 'URL is required';
+      return;
+    }
     this.urlError = this.validateUrl(this.longUrl);
     if (this.urlError) return;
 
@@ -87,7 +89,9 @@ export class AppComponent implements OnInit {
         this.urlError = '';
         this.load();
       },
-      error: () => this.error = 'Failed to generate URL'
+      error: err => {
+        this.error = `Failed to generate URL: ${err.status}`;
+      }
     });
   }
 
@@ -102,9 +106,5 @@ export class AppComponent implements OnInit {
     navigator.clipboard.writeText(url);
     this.copied = true;
     setTimeout(() => this.copied = false, 2000);
-  }
-
-  getShortUrl(code: string): string {
-    return `http://localhost:5000/${code}`;
   }
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using TinyUrl.API.Interfaces;
 using TinyUrl.API.Models;
 
@@ -17,40 +18,18 @@ namespace TinyUrl.API.Controllers
         private string GetBaseUrl() =>
             $"{Request.Scheme}://{Request.Host}";
 
-        // POST /api/urls
-        [HttpPost("api/urls")]
-        public async Task<IActionResult> Add([FromBody] TinyUrlAddDto dto)
-        {
-            if (string.IsNullOrEmpty(dto.Url))
-                return BadRequest("URL is required");
-
-            var entry = await _svc.CreateShortUrlAsync(
-                dto.Url, dto.IsPrivate, GetBaseUrl());
-
-            return CreatedAtAction(nameof(GetByCode),
-                new { code = entry.ShortCode },
-                new { entry.ShortUrl, entry.ShortCode, entry.Id });
-        }
-
-        // GET /api/urls
+        // Public — no auth needed
         [HttpGet("api/urls")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetPublic([FromQuery] string? search)
         {
             var result = await _svc.GetPublicUrlsAsync(search);
             return Ok(result);
         }
 
-        // GET /api/urls/{code}
-        [HttpGet("api/urls/{code}")]
-        public async Task<IActionResult> GetByCode(string code)
-        {
-            var entry = await _svc.GetByCodeAsync(code);
-            if (entry is null) return NotFound();
-            return Ok(entry);
-        }
-
-        // GET /{code} - redirect
+        // Public — redirect no auth needed
         [HttpGet("{code}")]
+        [AllowAnonymous]
         public async Task<IActionResult> RedirectToUrl(string code)
         {
             if (code is "swagger" or "api" or "favicon.ico"
@@ -64,8 +43,35 @@ namespace TinyUrl.API.Controllers
             return Redirect(originalUrl);
         }
 
-        // DELETE /api/urls/{code}
+        // 🔒 Protected — auth required
+        [HttpPost("api/urls")]
+        [Authorize]
+        public async Task<IActionResult> Add([FromBody] TinyUrlAddDto dto)
+        {
+            if (string.IsNullOrEmpty(dto.Url))
+                return BadRequest("URL is required");
+
+            var entry = await _svc.CreateShortUrlAsync(
+                dto.Url, dto.IsPrivate, GetBaseUrl());
+
+            return CreatedAtAction(nameof(GetByCode),
+                new { code = entry.ShortCode },
+                new { entry.ShortUrl, entry.ShortCode, entry.Id });
+        }
+
+        // 🔒 Protected
+        [HttpGet("api/urls/{code}")]
+        [Authorize]
+        public async Task<IActionResult> GetByCode(string code)
+        {
+            var entry = await _svc.GetByCodeAsync(code);
+            if (entry is null) return NotFound();
+            return Ok(entry);
+        }
+
+        // 🔒 Protected
         [HttpDelete("api/urls/{code}")]
+        [Authorize]
         public async Task<IActionResult> Delete(string code)
         {
             var deleted = await _svc.DeleteUrlAsync(code);
@@ -73,16 +79,18 @@ namespace TinyUrl.API.Controllers
             return NoContent();
         }
 
-        // DELETE /api/urls
+        // 🔒 Protected
         [HttpDelete("api/urls")]
+        [Authorize]
         public async Task<IActionResult> DeleteAll()
         {
             await _svc.DeleteAllUrlsAsync();
             return NoContent();
         }
 
-        // PUT /api/urls/{code}
+        // 🔒 Protected
         [HttpPut("api/urls/{code}")]
+        [Authorize]
         public async Task<IActionResult> Update(
             string code,
             [FromBody] TinyUrlAddDto dto)
